@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="{{ url_for('static', filename='script.js') }}" defer></script>
+</head>
+<body>
+    <h1>Question {{ q_num }}</h1>
+    <p id="timer">Time: 0s</p>
+    <form method="POST" action="/quiz">
+        <p>{{ question["question"] }}</p>
+        {% for opt in question["options"] %}
+            <label>
+                <input type="radio" name="answer" value="{{ opt }}" required> {{ opt }}
+            </label><br>
+        {% endfor %}
+        <button type="submit">Next</button>
+    </form>
+</body>
+</html>

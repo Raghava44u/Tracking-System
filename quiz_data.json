@@ -1,0 +1,12 @@
+[
+  {
+      "question": "What is the capital of France?",
+      "options": ["Berlin", "Madrid", "Paris", "Rome"],
+      "answer": "Paris"
+  },
+  {
+      "question": "Solve: 15 × 4 + 3 = ?",
+      "options": ["63", "60", "64", "58"],
+      "answer": "64"
+  }
+]

@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Visualization</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-matrix"></script> <!-- Calendar Heatmap Plugin -->
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        .chart-container { display: flex; justify-content: center; flex-wrap: wrap; gap: 20px; }
+        .chart-box { width: 300px; height: 300px; }
+    </style>
+</head>
+<body>
+    <h1>Quiz Performance</h1>
+
+    <h3>Total Time Spent: <span id="totalTime"></span> seconds</h3>
+    <h3>Average Time Per Question: <span id="avgTime"></span> seconds</h3>
+
+    <div class="chart-container">
+        <div class="chart-box"><canvas id="accuracyChart"></canvas></div>
+        <div class="chart-box"><canvas id="timeChart"></canvas></div>
+        <div class="chart-box"><canvas id="usageChart"></canvas></div>
+        <div class="chart-box"><canvas id="difficultyChart"></canvas></div>
+        <div class="chart-box"><canvas id="stackedTimeChart"></canvas></div>
+        <div class="chart-box"><canvas id="progressChart"></canvas></div>
+        <div class="chart-box"><canvas id="timePieChart"></canvas></div>
+    </div>
+
+    <h2>Time Spent Calendar</h2>
+    <div style="width: 600px; margin: auto;">
+        <canvas id="calendarChart"></canvas>
+    </div>
+
+    <script>
+        const results = {{ results | tojson }};
+        const totalTime = results.reduce((sum, q) => sum + q.time, 0);
+        const correctCount = results.filter(q => q.correct).length;
+        const incorrectCount = results.length - correctCount;
+        const timeTaken = results.map(q => q.time);
+        const labels = results.map((q, i) => "Q" + (i + 1));
+        const avgTime = totalTime / results.length;
+        const maxAllowedTime = results.length * 10; // Assuming ideal benchmark is 10s per question
+        const percentageTimeUsed = (totalTime / maxAllowedTime) * 100;
+
+        document.getElementById("totalTime").textContent = totalTime.toFixed(2);
+        document.getElementById("avgTime").textContent = avgTime.toFixed(2);
+
+        // Doughnut Chart: Accuracy
+        new Chart(document.getElementById("accuracyChart"), {
+            type: "doughnut",
+            data: {
+                labels: ["Correct", "Incorrect"],
+                datasets: [{ data: [correctCount, incorrectCount], backgroundColor: ["#4CAF50", "#F44336"] }]
+            },
+            options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+        });
+
+        // Line Chart: Time per Question
+        new Chart(document.getElementById("timeChart"), {
+            type: "line",
+            data: {
+                labels: labels,
+                datasets: [{ label: "Time Taken (s)", data: timeTaken, borderColor: "#2196F3", fill: true, tension: 0.4 }]
+            },
+            options: { responsive: true }
+        });
+
+        // Bar Chart: Total Time
+        new Chart(document.getElementById("usageChart"), {
+            type: "bar",
+            data: {
+                labels: ["Total Time Spent"],
+                datasets: [{ label: "Seconds", data: [totalTime], backgroundColor: "#FFA500" }]
+            },
+            options: { responsive: true }
+        });
+
+        // Radar Chart: Question Difficulty
+        new Chart(document.getElementById("difficultyChart"), {
+            type: "radar",
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: "Time Taken per Question",
+                    data: timeTaken,
+                    backgroundColor: "rgba(255, 99, 132, 0.2)",
+                    borderColor: "rgba(255, 99, 132, 1)",
+                    pointBackgroundColor: "rgba(255, 99, 132, 1)"
+                }]
+            },
+            options: { responsive: true }
+        });
+
+        // Stacked Bar Chart: Time Segmentation
+        new Chart(document.getElementById("stackedTimeChart"), {
+            type: "bar",
+            data: {
+                labels: ["Total Time Distribution"],
+                datasets: [
+                    { label: "Reading Time", data: [totalTime * 0.3], backgroundColor: "#42A5F5" },
+                    { label: "Answering Time", data: [totalTime * 0.5], backgroundColor: "#66BB6A" },
+                    { label: "Reviewing Time", data: [totalTime * 0.2], backgroundColor: "#FFA726" }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: { stacked: true },
+                    y: { stacked: true, title: { display: true, text: "Time (s)" } }
+                }
+            }
+        });
+
+        // Progress Gauge Chart (Time Usage %)
+        new Chart(document.getElementById("progressChart"), {
+            type: "doughnut",
+            data: {
+                labels: ["Used", "Remaining"],
+                datasets: [{
+                    data: [percentageTimeUsed, 100 - percentageTimeUsed],
+                    backgroundColor: ["#FF6384", "#CCCCCC"]
+                }]
+            },
+            options: {
+                responsive: true,
+                cutout: "80%",
+                plugins: {
+                    tooltip: { enabled: false },
+                    legend: { display: false }
+                }
+            }
+        });
+
+        // Pie Chart for Time Distribution
+        new Chart(document.getElementById("timePieChart"), {
+            type: "pie",
+            data: {
+                labels: ["Reading", "Answering", "Reviewing"],
+                datasets: [{
+                    data: [totalTime * 0.3, totalTime * 0.5, totalTime * 0.2],
+                    backgroundColor: ["#42A5F5", "#66BB6A", "#FFA726"]
+                }]
+            },
+            options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+        });
+
+        // Calendar Heatmap
+        let timeLog = {};
+        results.forEach(q => {
+            let date = new Date().toISOString().split("T")[0]; // Today's date (change as needed)
+            timeLog[date] = (timeLog[date] || 0) + q.time;
+        });
+
+        let heatmapData = Object.keys(timeLog).map(date => {
+            let value = timeLog[date];
+            let color = value >= 3600 ? "green" : value >= 60 ? "orange" : "yellow";
+            return { x: date, y: "Time", v: value, color: color };
+        });
+
+        new Chart(document.getElementById("calendarChart"), {
+            type: "matrix",
+            data: {
+                datasets: [{
+                    label: "Time Spent",
+                    data: heatmapData,
+                    backgroundColor: ctx => ctx.raw ? ctx.raw.color : "transparent",
+                    borderColor: "white",
+                    borderWidth: 2,
+                    width: ({ chart }) => chart.chartArea.width / 12,
+                    height: 20
+                }]
+            },
+            options: {
+                scales: {
+                    x: { type: "time", time: { unit: "day" }, title: { display: true, text: "Date" } },
+                    y: { display: false }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+
+    </script>
+</body>
+</html>
