@@ -4,7 +4,7 @@ import time
 app = Flask(__name__)
 app.secret_key = "secret"
 
-# Sample quiz questions
+# Sample questions
 questions = [
     {"question": "What is 5 + 3?", "options": ["6", "7", "8", "9"], "answer": "8"},
     {"question": "What is the capital of France?", "options": ["Berlin", "Madrid", "Paris", "Rome"], "answer": "Paris"},
@@ -19,11 +19,10 @@ def index():
     session["responses"] = []
     session["start_time"] = time.time()
 
-    # Initialize login tracking
     if "login_times" not in session:
         session["login_times"] = []
     
-    session["login_start"] = time.time()  # Store login start time
+    session["login_start"] = time.time()
 
     return redirect(url_for("quiz"))
 
@@ -44,8 +43,7 @@ def quiz():
         })
 
         session["current_q"] += 1
-        session["start_time"] = time.time()  # Reset timer for next question
-
+        session["start_time"] = time.time() 
     if session["current_q"] < len(questions):
         return render_template("index.html", 
                                question=questions[session["current_q"]], 
@@ -60,11 +58,11 @@ def logout():
         login_duration = round(login_end - session["login_start"], 2)
 
         session["login_times"].append({
-            "timestamp": int(session["login_start"]),  # Store UNIX timestamp
+            "timestamp": int(session["login_start"]),
             "duration": login_duration
         })
 
-        session.pop("login_start")  # Remove login start time
+        session.pop("login_start") 
 
     return redirect(url_for("visualization"))
 
